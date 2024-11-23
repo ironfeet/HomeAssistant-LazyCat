@@ -1,0 +1,55 @@
+lzc-sdk-version: 0.1
+name: HomeAssistant
+package: me.ironfeet.app.homeassistant
+version: 0.0.1
+description: 
+license: https://choosealicense.com/licenses/mit/
+homepage: 
+author: 
+application:
+  subdomain: homeassistant
+  routes:
+    - /=http://homeassistant.me.ironfeet.app.homeassistant.lzcapp:8123
+  #gpu_accel: true
+  depends_on:
+    - homeassistant
+  background_task: true
+
+  #ingress:
+  #  - protocol: tcp
+  #    port: 11434
+  #    service: ollama
+
+services:
+  init:
+    image: ironfeet/init4homeassistant:v0.3
+    command: sh -c "
+
+        set -ex;
+        if [ ! -d /mnt/homeassistant ]; then
+          cp -R /etc/homeassistant /mnt/;
+        fi
+
+        if [ ! -f /mnt/homeassistant/configuration.yaml ]; then
+          cp /etc/configuration.yaml /mnt/homeassistant/configuration.yaml;
+        fi
+      
+        if [ `grep http /mnt/homeassistant/configuration.yaml | wc -l` -eq 0 ]; then
+          cp /etc/configuration.yaml /mnt/homeassistant/configuration.yaml;
+        fi
+
+        while true; do sleep 10000; done
+
+      "
+    restart: unless-stopped
+    binds:
+      - /lzcapp/var:/mnt
+
+  homeassistant:
+    image: "ghcr.io/home-assistant/home-assistant:2024.11.1"
+    binds:
+      - /lzcapp/var/homeassistant:/config
+    restart: unless-stopped
+    privileged: true
+    depends_on:
+      - init
